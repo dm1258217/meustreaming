@@ -2,108 +2,98 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Stream TV Fix</title>
+    <title>Stream TV Compatibilidade Total</title>
     <style type="text/css">
-        body { background-color: #000; color: #fff; font-family: Arial; margin: 0; padding: 20px; text-align: center; }
-        .grade { display: block; width: 100%; margin-top: 50px; }
-        
-        /* Card ultra simples para evitar erros de renderização */
-        .card-filme {
-            display: inline-block; width: 200px; margin: 10px;
-            background: #222; border: 5px solid #444; vertical-align: top;
-            outline: none; text-decoration: none; color: white;
+        body { background-color: #000; color: #fff; font-family: Arial, sans-serif; margin: 0; padding: 20px; text-align: center; }
+        .grade { display: block; width: 100%; margin-top: 40px; }
+        .card {
+            display: inline-block; width: 180px; margin: 10px;
+            background: #1a1a1a; border: 4px solid #333; vertical-align: top;
+            outline: none; text-decoration: none; color: white; border-radius: 5px;
         }
-        .card-filme:focus { border-color: red; transform: scale(1.05); background: #333; }
-        
-        .card-filme img { width: 100%; height: 280px; display: block; background: #111; border: 0; }
-        .card-filme div { padding: 10px; font-size: 16px; font-weight: bold; overflow: hidden; height: 40px; }
-
-        #debug-box { position: fixed; top: 0; left: 0; background: red; padding: 5px; font-size: 12px; z-index: 1000; }
-        #player { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 2000; }
+        .card:focus { border-color: #e50914; transform: scale(1.05); }
+        .card img { width: 100%; height: 250px; display: block; background: #222; }
+        .card-title { padding: 8px; font-size: 14px; font-weight: bold; height: 35px; overflow: hidden; }
+        #debug { position: fixed; bottom: 0; left: 0; background: rgba(255,0,0,0.7); font-size: 12px; padding: 4px; }
+        #player { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 999; }
     </style>
 </head>
-<body onload="iniciar()">
+<body onload="carregarTV()">
 
-    <div id="debug-box">Status: Iniciando...</div>
-
-    <h1 id="titulo-pagina">MEU STREAMING</h1>
+    <div id="debug">Status: Inicializando...</div>
+    <h1 style="color:#e50914">MEU STREAMING</h1>
     
-    <div id="container-filmes" class="grade">
-        <h2>Carregando filmes do banco de dados...</h2>
+    <div id="lista" class="grade">
+        <h2>A carregar lista de filmes...</h2>
     </div>
 
     <div id="player">
-        <video id="video-player" width="100%" height="100%" controls autoplay></video>
+        <video id="vid" width="100%" height="100%" controls autoplay></video>
     </div>
 
-    <script type="text/javascript" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script type="text/javascript" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
     <script type="text/javascript">
-        var firebaseConfig = {
-            apiKey: "AIzaSyD7UXqlamZW0H0bpOAzPkzQ1YyTlu5fQ2w",
-            authDomain: "meuappstreaming-b615b.firebaseapp.com",
-            projectId: "meuappstreaming-b615b",
-            storageBucket: "meuappstreaming-b615b.firebasestorage.app",
-            messagingSenderId: "272160659154",
-            appId: "1:272160659154:web:2108683ca2dac3cc0ebf0b"
-        };
-        firebase.initializeApp(firebaseConfig);
-        var db = firebase.firestore();
+        // ATENÇÃO: Substituímos o Firebase por uma chamada direta via API REST
+        // Isso ignora as bibliotecas pesadas que a TV não suporta
+        var projetoID = "meuappstreaming-b615b";
+        var urlAPI = "https://firestore.googleapis.com/v1/projects/" + projetoID + "/databases/(default)/documents/filmes";
 
-        function iniciar() {
-            var box = document.getElementById('container-filmes');
-            var dbg = document.getElementById('debug-box');
+        function carregarTV() {
+            var container = document.getElementById('lista');
+            var dbg = document.getElementById('debug');
 
-            // Chamada direta e simples
-            db.collection("filmes").get().then(function(snapshot) {
-                if (snapshot.empty) {
-                    dbg.innerHTML = "Status: Banco Vazio!";
-                    box.innerHTML = "<h3>Nenhum filme encontrado. Vá ao Admin e adicione um filme agora.</h3>";
-                    return;
-                }
+            // Chamada ultra-compatível que toda Smart TV entende
+            fetch(urlAPI)
+                .then(function(response) { return response.json(); })
+                .then(function(json) {
+                    if (!json.documents) {
+                        dbg.innerHTML = "Erro: Banco vazio ou URL errada";
+                        container.innerHTML = "<h3>Adicione filmes no Admin primeiro!</h3>";
+                        return;
+                    }
 
-                var html = "";
-                snapshot.forEach(function(doc) {
-                    var data = doc.data();
-                    // Criando o elemento por string para garantir compatibilidade
-                    html += '<a href="#" class="card-filme" onclick="play(\''+data.video+'\'); return false;">';
-                    html += '<img src="'+data.capa+'" border="0" alt="capa">';
-                    html += '<div>'+data.titulo+'</div></a>';
+                    var html = "";
+                    for (var i = 0; i < json.documents.length; i++) {
+                        var doc = json.documents[i].fields;
+                        // O Firebase REST API entrega os dados de um jeito diferente:
+                        var titulo = doc.titulo.stringValue;
+                        var capa = doc.capa.stringValue;
+                        var video = doc.video.stringValue;
+
+                        html += '<a href="#" class="card f-item" onclick="play(\''+video+'\'); return false;">';
+                        html += '<img src="'+capa+'" border="0">';
+                        html += '<div class="card-title">'+titulo+'</div></a>';
+                    }
+
+                    container.innerHTML = html;
+                    dbg.innerHTML = "Sucesso: Filmes carregados via REST API";
+
+                    // Foco automático para o comando
+                    setTimeout(function() {
+                        var itens = document.getElementsByClassName('f-item');
+                        if(itens[0]) itens[0].focus();
+                    }, 1000);
+                })
+                .catch(function(err) {
+                    dbg.innerHTML = "Erro de Rede: " + err.message;
+                    container.innerHTML = "<h3>Erro ao ligar ao servidor.</h3>";
                 });
-
-                box.innerHTML = html;
-                dbg.innerHTML = "Status: " + snapshot.size + " Filmes OK";
-
-                // Focar no primeiro filme para o controle remoto funcionar
-                setTimeout(function() {
-                    var botoes = document.getElementsByClassName('card-filme');
-                    if(botoes[0]) botoes[0].focus();
-                }, 1500);
-
-            }).catch(function(err) {
-                dbg.innerHTML = "Erro: " + err.message;
-                box.innerHTML = "<h3>Erro de conexão. Verifique a internet da TV.</h3>";
-            });
         }
 
         function play(link) {
-            var p = document.getElementById('player');
-            var v = document.getElementById('video-player');
-            p.style.display = 'block';
+            document.getElementById('player').style.display = 'block';
+            var v = document.getElementById('vid');
             v.src = link;
             v.play();
         }
 
-        // Teclas do controle remoto
         document.onkeydown = function(e) {
             var k = e.keyCode;
-            if (k == 13 || k == 29443) { 
-                var active = document.activeElement;
-                if(active && active.onclick) active.onclick();
+            if (k == 13 || k == 29443) { // OK
+                var act = document.activeElement;
+                if(act && act.onclick) act.onclick();
             }
-            if (k == 8 || k == 461 || k == 27) { // Voltar
-                document.getElementById('video-player').pause();
+            if (k == 8 || k == 461 || k == 27 || k == 10009) { // VOLTAR
+                document.getElementById('vid').pause();
                 document.getElementById('player').style.display = 'none';
             }
         };
