@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Painel Admin - Streaming Pro</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; color: #333; }
+        .container { max-width: 500px; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 0 auto; }
+        h2 { color: #e50914; }
+        input, select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #e50914; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        button:hover { background: #b20710; }
+        .lista { margin-top: 20px; border-top: 1px solid #ddd; padding-top: 20px; }
+        .item-filme { display: flex; justify-content: space-between; background: #f9f9f9; padding: 10px; margin-bottom: 5px; border-radius: 5px; font-size: 14px; }
+        .btn-del { color: red; cursor: pointer; border: none; background: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Adicionar Novo Filme</h2>
+    <input type="text" id="titulo" placeholder="Título do Filme">
+    <input type="text" id="capa" placeholder="Link da Imagem (Poster)">
+    <input type="text" id="video" placeholder="Link do Vídeo (MP4/m3u8)">
+    <select id="tipo">
+        <option value="false">Grátis</option>
+        <option value="true">VIP (Bloqueado)</option>
+    </select>
+    <button onclick="adicionarFilme()">PUBLICAR NA TV</button>
+
+    <div class="lista" id="lista-filmes">
+        <h3>Filmes Ativos</h3>
+        </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script>
+    var firebaseConfig = {
+        apiKey: "AIzaSyD7UXqlamZW0H0bpOAzPkzQ1YyTlu5fQ2w",
+        authDomain: "meuappstreaming-b615b.firebaseapp.com",
+        projectId: "meuappstreaming-b615b",
+        storageBucket: "meuappstreaming-b615b.firebasestorage.app",
+        messagingSenderId: "272160659154",
+        appId: "1:272160659154:web:2108683ca2dac3cc0ebf0b"
+    };
+    firebase.initializeApp(firebaseConfig);
+    var db = firebase.firestore();
+
+    function adicionarFilme() {
+        var t = document.getElementById('titulo').value;
+        var c = document.getElementById('capa').value;
+        var v = document.getElementById('video').value;
+        var tp = document.getElementById('tipo').value === "true";
+
+        if(t && c && v) {
+            db.collection("filmes").add({
+                titulo: t, capa: c, video: v, vip: tp, data: Date.now()
+            }).then(() => {
+                alert("Filme enviado para a TV!");
+                location.reload();
+            });
+        } else {
+            alert("Preencha todos os campos!");
+        }
+    }
+
+    // Carregar lista para poder apagar
+    db.collection("filmes").orderBy("data", "desc").onSnapshot((snapshot) => {
+        var html = "";
+        snapshot.forEach((doc) => {
+            var f = doc.data();
+            html += `<div class="item-filme">
+                        <span>${f.titulo} (${f.vip ? 'VIP' : 'Grátis'})</span>
+                        <button class="btn-del" onclick="apagarFilme('${doc.id}')">Apagar</button>
+                    </div>`;
+        });
+        document.getElementById('lista-filmes').innerHTML = html;
+    });
+
+    function apagarFilme(id) {
+        if(confirm("Remover este filme da TV?")) {
+            db.collection("filmes").doc(id).delete();
+        }
+    }
+</script>
+
+</body>
+</html>
