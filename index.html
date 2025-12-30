@@ -1,0 +1,112 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Stream TV Fix</title>
+    <style type="text/css">
+        body { background-color: #000; color: #fff; font-family: Arial; margin: 0; padding: 20px; text-align: center; }
+        .grade { display: block; width: 100%; margin-top: 50px; }
+        
+        /* Card ultra simples para evitar erros de renderização */
+        .card-filme {
+            display: inline-block; width: 200px; margin: 10px;
+            background: #222; border: 5px solid #444; vertical-align: top;
+            outline: none; text-decoration: none; color: white;
+        }
+        .card-filme:focus { border-color: red; transform: scale(1.05); background: #333; }
+        
+        .card-filme img { width: 100%; height: 280px; display: block; background: #111; border: 0; }
+        .card-filme div { padding: 10px; font-size: 16px; font-weight: bold; overflow: hidden; height: 40px; }
+
+        #debug-box { position: fixed; top: 0; left: 0; background: red; padding: 5px; font-size: 12px; z-index: 1000; }
+        #player { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 2000; }
+    </style>
+</head>
+<body onload="iniciar()">
+
+    <div id="debug-box">Status: Iniciando...</div>
+
+    <h1 id="titulo-pagina">MEU STREAMING</h1>
+    
+    <div id="container-filmes" class="grade">
+        <h2>Carregando filmes do banco de dados...</h2>
+    </div>
+
+    <div id="player">
+        <video id="video-player" width="100%" height="100%" controls autoplay></video>
+    </div>
+
+    <script type="text/javascript" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script type="text/javascript">
+        var firebaseConfig = {
+            apiKey: "AIzaSyD7UXqlamZW0H0bpOAzPkzQ1YyTlu5fQ2w",
+            authDomain: "meuappstreaming-b615b.firebaseapp.com",
+            projectId: "meuappstreaming-b615b",
+            storageBucket: "meuappstreaming-b615b.firebasestorage.app",
+            messagingSenderId: "272160659154",
+            appId: "1:272160659154:web:2108683ca2dac3cc0ebf0b"
+        };
+        firebase.initializeApp(firebaseConfig);
+        var db = firebase.firestore();
+
+        function iniciar() {
+            var box = document.getElementById('container-filmes');
+            var dbg = document.getElementById('debug-box');
+
+            // Chamada direta e simples
+            db.collection("filmes").get().then(function(snapshot) {
+                if (snapshot.empty) {
+                    dbg.innerHTML = "Status: Banco Vazio!";
+                    box.innerHTML = "<h3>Nenhum filme encontrado. Vá ao Admin e adicione um filme agora.</h3>";
+                    return;
+                }
+
+                var html = "";
+                snapshot.forEach(function(doc) {
+                    var data = doc.data();
+                    // Criando o elemento por string para garantir compatibilidade
+                    html += '<a href="#" class="card-filme" onclick="play(\''+data.video+'\'); return false;">';
+                    html += '<img src="'+data.capa+'" border="0" alt="capa">';
+                    html += '<div>'+data.titulo+'</div></a>';
+                });
+
+                box.innerHTML = html;
+                dbg.innerHTML = "Status: " + snapshot.size + " Filmes OK";
+
+                // Focar no primeiro filme para o controle remoto funcionar
+                setTimeout(function() {
+                    var botoes = document.getElementsByClassName('card-filme');
+                    if(botoes[0]) botoes[0].focus();
+                }, 1500);
+
+            }).catch(function(err) {
+                dbg.innerHTML = "Erro: " + err.message;
+                box.innerHTML = "<h3>Erro de conexão. Verifique a internet da TV.</h3>";
+            });
+        }
+
+        function play(link) {
+            var p = document.getElementById('player');
+            var v = document.getElementById('video-player');
+            p.style.display = 'block';
+            v.src = link;
+            v.play();
+        }
+
+        // Teclas do controle remoto
+        document.onkeydown = function(e) {
+            var k = e.keyCode;
+            if (k == 13 || k == 29443) { 
+                var active = document.activeElement;
+                if(active && active.onclick) active.onclick();
+            }
+            if (k == 8 || k == 461 || k == 27) { // Voltar
+                document.getElementById('video-player').pause();
+                document.getElementById('player').style.display = 'none';
+            }
+        };
+    </script>
+</body>
+</html>
