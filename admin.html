@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin PRO | Login</title>
+    <style>
+        :root { --primary: #e50914; --bg: #0f111a; --card: #1a1c29; --text: #ffffff; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; }
+        
+        /* TELA DE LOGIN */
+        #login-screen {
+            position: fixed; top:0; left:0; width:100%; height:100%; 
+            background: var(--bg); z-index: 1000; display: flex; align-items: center; justify-content: center;
+        }
+        .login-box { background: var(--card); padding: 40px; border-radius: 15px; border: 1px solid #333; text-align: center; width: 300px; }
+        
+        /* DASHBOARD (Escondido inicialmente) */
+        #admin-content { display: none; display: flex; height: 100vh; }
+        .sidebar { width: 250px; background: #000; padding: 20px; border-right: 1px solid #333; }
+        .main { flex: 1; padding: 40px; overflow-y: auto; }
+
+        /* ESTILOS GERAIS */
+        input, select { 
+            width: 100%; background: #050505; border: 1px solid #444; padding: 12px; 
+            color: white; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box;
+        }
+        button { 
+            width: 100%; background: var(--primary); color: white; border: none; padding: 12px; 
+            border-radius: 8px; font-weight: bold; cursor: pointer;
+        }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid #333; }
+        table { width: 100%; border-collapse: collapse; background: var(--card); margin-top: 20px; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #333; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; background: #333; }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="login-box">
+            <h2 style="color:var(--primary)">ADMIN LOGIN</h2>
+            <input type="text" id="user-admin" placeholder="Usuário">
+            <input type="password" id="pass-admin" placeholder="Senha">
+            <button onclick="verificarLogin()">ENTRAR NO PAINEL</button>
+            <p id="login-erro" style="color:red; font-size:12px; margin-top:10px; display:none;">Acesso Negado!</p>
+        </div>
+    </div>
+
+    <div id="admin-content">
+        <div class="sidebar">
+            <h2 style="color:var(--primary)">STREAM PRO</h2>
+            <p>● Dashboard</p>
+            <p style="color:gray; cursor:pointer" onclick="location.reload()">Sair</p>
+        </div>
+
+        <div class="main">
+            <h1>Gerenciar Catálogo</h1>
+            
+            <div class="stats-grid">
+                <div class="stat-card"><small>Filmes Online</small><div id="total-f">0</div></div>
+                <div class="stat-card"><small>Categorias</small><div>Dinâmico</div></div>
+                <div class="stat-card"><small>Status</small><div style="color:#00ff88">Protegido</div></div>
+            </div>
+
+            <div style="background:var(--card); padding:25px; border-radius:15px; border:1px solid #333;">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                    <input type="text" id="titulo" placeholder="Título do Filme">
+                    <select id="categoria">
+                        <option value="Ação">Ação</option>
+                        <option value="Terror">Terror</option>
+                        <option value="Comédia">Comédia</option>
+                        <option value="Desenho">Desenho</option>
+                        <option value="Séries">Séries</option>
+                    </select>
+                    <input type="text" id="capa" placeholder="URL da Capa">
+                    <input type="text" id="video" placeholder="URL do Vídeo">
+                    <select id="tipo">
+                        <option value="false">Grátis</option>
+                        <option value="true">VIP</option>
+                    </select>
+                    <button onclick="adicionarFilme()">PUBLICAR AGORA</button>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Título</th>
+                        <th>Categoria</th>
+                        <th>Acesso</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela-corpo"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <script>
+        // CONFIGURAÇÃO DO SEU USUÁRIO (Mude aqui)
+        var USER_CORRETO = "admin";
+        var PASS_CORRETA = "1234";
+
+        function verificarLogin() {
+            var u = document.getElementById('user-admin').value;
+            var p = document.getElementById('pass-admin').value;
+            if(u === USER_CORRETO && p === PASS_CORRETA) {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('admin-content').style.display = 'flex';
+                carregarDados();
+            } else {
+                document.getElementById('login-erro').style.display = 'block';
+            }
+        }
+
+        var firebaseConfig = {
+            apiKey: "AIzaSyD7UXqlamZW0H0bpOAzPkzQ1YyTlu5fQ2w",
+            authDomain: "meuappstreaming-b615b.firebaseapp.com",
+            projectId: "meuappstreaming-b615b",
+            storageBucket: "meuappstreaming-b615b.firebasestorage.app",
+            messagingSenderId: "272160659154",
+            appId: "1:272160659154:web:2108683ca2dac3cc0ebf0b"
+        };
+        firebase.initializeApp(firebaseConfig);
+        var db = firebase.firestore();
+
+        function adicionarFilme() {
+            var t = document.getElementById('titulo').value;
+            var cat = document.getElementById('categoria').value;
+            var c = document.getElementById('capa').value;
+            var v = document.getElementById('video').value;
+            var tp = document.getElementById('tipo').value === "true";
+
+            if(t && c && v) {
+                db.collection("filmes").add({
+                    titulo: t, categoria: cat, capa: c, video: v, vip: tp, data: Date.now()
+                }).then(() => { alert("Publicado!"); document.getElementById('titulo').value=""; });
+            }
+        }
+
+        function carregarDados() {
+            db.collection("filmes").orderBy("data", "desc").onSnapshot((snapshot) => {
+                var html = "";
+                document.getElementById('total-f').innerText = snapshot.size;
+                snapshot.forEach((doc) => {
+                    var f = doc.data();
+                    html += `<tr>
+                        <td>${f.titulo}</td>
+                        <td><span class="badge">${f.categoria || 'Geral'}</span></td>
+                        <td>${f.vip ? '⭐ VIP' : '🔓 Grátis'}</td>
+                        <td><button onclick="apagar('${doc.id}')" style="background:none; color:red; width:auto; padding:0;">Excluir</button></td>
+                    </tr>`;
+                });
+                document.getElementById('tabela-corpo').innerHTML = html;
+            });
+        }
+
+        function apagar(id) {
+            if(confirm("Excluir filme?")) db.collection("filmes").doc(id).delete();
+        }
+    </script>
+</body>
+</html>
